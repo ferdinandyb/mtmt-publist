@@ -33,6 +33,7 @@ type MtmtResponse struct {
 		} `json:"authorships"`
 		Identifiers []struct {
 			RealUrl string `json:"realUrl"`
+			Label   string `json:"label"`
 			Source  struct {
 				Label string `json:"label"`
 			} `json:"source"`

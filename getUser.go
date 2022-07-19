@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 func getUser(w http.ResponseWriter, r *http.Request) {
@@ -48,12 +49,22 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	var response []Paper
 	for index, content := range mtmtResponse.Content {
+		var doi string
+		for _, identifier := range content.Identifiers {
+			if identifier.Source.Label == "DOI" {
+				doi = identifier.RealUrl
+				if doi == "" {
+					doi = "https://doi.org/" + strings.Split(identifier.Label, " ")[0]
+				}
+			}
+		}
 		paper := Paper{
 			Index:               index,
 			Title:               content.Title,
 			Year:                content.Year,
 			Citation:            content.Citation,
 			IndependentCitation: content.IndependentCitation,
+			Doi:                 doi,
 		}
 		response = append(response, paper)
 	}
