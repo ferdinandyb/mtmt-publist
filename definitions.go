@@ -8,20 +8,20 @@ type Author struct {
 }
 
 type Paper struct {
-	index               int
-	journal             string
-	year                int
-	title               string
-	doi                 string
-	citation            int
-	independentCitation int
-	authors             []Author
+	Index               int
+	Journal             string
+	Year                int
+	Title               string
+	Doi                 string
+	Citation            int
+	IndependentCitation int
+	Authors             []Author
 }
 
-type mtmtResponse struct {
+type MtmtResponse struct {
 	Content []struct {
 		Title               string `json:"title"`
-		Year                string `json:"publishedYear"`
+		Year                int    `json:"publishedYear"`
 		Citation            int    `json:"citationCount"`
 		IndependentCitation int    `json:"independentCitationCount"`
 		Authorships         []struct {

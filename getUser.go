@@ -11,6 +11,7 @@ import (
 
 func getUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /user request\n")
+	mtid := r.URL.Query().Get("mtid")
 	base, err := url.Parse("https://m2.mtmt.hu/api/publication")
 	if err != nil {
 		return
@@ -20,7 +21,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	params := url.Values{}
 	params.Add("cond", "published;eq;true")
 	params.Add("cond", "core;eq;true")
-	params.Add("cond", "authors.mtid;eq;10028021")
+	params.Add("cond", "authors.mtid;eq;"+mtid)
 	params.Add("cond", "category.mtid;eq;1")
 	params.Add("cond", "type.mtid;eq;24")
 	params.Add("cond", "languages.label;eq;Angol")
@@ -43,8 +44,19 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	data := mtmtResponse{}
-	err = json.Unmarshal([]byte(body), &data)
-	fmt.Println(data)
+	mtmtResponse := MtmtResponse{}
+	err = json.Unmarshal([]byte(body), &mtmtResponse)
+	var response []Paper
+	for index, content := range mtmtResponse.Content {
+		paper := Paper{
+			Index:               index,
+			Title:               content.Title,
+			Year:                content.Year,
+			Citation:            content.Citation,
+			IndependentCitation: content.IndependentCitation,
+		}
+		response = append(response, paper)
+	}
+	json.NewEncoder(w).Encode(response)
 
 }
