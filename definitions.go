@@ -18,25 +18,30 @@ type Paper struct {
 	Authors             []Author
 }
 
+type AuthorShip struct {
+	FamilyName string `json:"familyName"`
+	GivenName  string `json:"givenName"`
+	Type       struct {
+		Mtid int `json:"mtid"`
+	} `json:"type"`
+}
+
 type MtmtResponse struct {
 	Content []struct {
-		Title               string `json:"title"`
-		Year                int    `json:"publishedYear"`
-		Citation            int    `json:"citationCount"`
-		IndependentCitation int    `json:"independentCitationCount"`
-		Authorships         []struct {
-			FamilyName string `json:"familyName"`
-			GivenName  string `json:"givenName"`
-			Type       struct {
-				Mtid int `json:"mtid"`
-			} `json:"type"`
-		} `json:"authorships"`
-		Identifiers []struct {
+		Title               string       `json:"title"`
+		Year                int          `json:"publishedYear"`
+		Citation            int          `json:"citationCount"`
+		IndependentCitation int          `json:"independentCitationCount"`
+		Authorships         []AuthorShip `json:"authorships"`
+		Identifiers         []struct {
 			RealUrl string `json:"realUrl"`
 			Label   string `json:"label"`
 			Source  struct {
 				Label string `json:"label"`
 			} `json:"source"`
 		} `json:"identifiers"`
+		Journal struct {
+			Link string `json:"link"`
+		} `json:"journal"`
 	} `json:"content"`
 }

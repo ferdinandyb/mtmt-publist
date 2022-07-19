@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+func getJournal() {
+
+}
+
 func getUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /user request\n")
 	mtid := r.URL.Query().Get("mtid")
@@ -48,7 +52,9 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	var response []Paper
+	var journals map[string]string
 	for index, content := range mtmtResponse.Content {
+		journals[content.Journal.Link] = ""
 		var doi string
 		for _, identifier := range content.Identifiers {
 			if identifier.Source.Label == "DOI" {
@@ -58,6 +64,13 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+		// {
+
+		// 					index:      i,
+		// 					familyName: author.FamilyName,
+		// 					givenName:  author.GivenName,
+		// 					isUser:     string(author.Type.Mtid) == mtid,
+		// 				}
 		paper := Paper{
 			Index:               index,
 			Title:               content.Title,
@@ -68,6 +81,18 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		}
 		response = append(response, paper)
 	}
+	fmt.Println(journals)
 	json.NewEncoder(w).Encode(response)
 
 }
+
+// var wg sync.WaitGroup
+// journalsChan := make(chan string, len(content.Authorships))
+// for i, author := range content.Authorships {
+// 	wg.Add(1)
+// 	i := i
+// 	go func(author AuthorShip) {
+// 		defer wg.Done()
+// 		journalsChan <- getJournal()
+// 	}(journal)
+// }
