@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/samber/lo"
+	lop "github.com/samber/lo/parallel"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,7 +14,22 @@ import (
 )
 
 func getJournal(apistring string) string {
-	return "hello"
+	req, err := url.Parse("https://m2.mtmt.hu/" + apistring)
+	if err != nil {
+		return ""
+	}
+
+	resp, err := http.Get(req.String())
+	if err != nil {
+		log.Fatalln(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	journalResponse := JournalResponse{}
+	err = json.Unmarshal([]byte(body), &journalResponse)
+	return strings.Title(strings.ToLower(journalResponse.Content.Title))
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
@@ -53,9 +70,9 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	var response []Paper
-	journals := make(map[string]string)
+	var journals []string
 	for index, content := range mtmtResponse.Content {
-		journals[content.Journal.Link] = ""
+		journals = append(journals, content.Journal.Link)
 		var doi string
 		for _, identifier := range content.Identifiers {
 			if identifier.Source.Label == "DOI" {
@@ -68,7 +85,6 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		var authors []Author
 		mtid_asint, _ := strconv.Atoi(mtid)
 		for author_i, author := range content.Authorships {
-			fmt.Println(mtid_asint)
 			if author.Type.Mtid == 1 {
 				authors = append(authors, Author{
 					Index:      author_i,
@@ -86,21 +102,21 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			IndependentCitation: content.IndependentCitation,
 			Doi:                 doi,
 			Authors:             authors,
+			Journal:             content.Journal.Link,
 		}
 		response = append(response, paper)
 	}
-	fmt.Println(journals)
+
+	journals = lo.Uniq[string](journals)
+	journal_titles := lop.Map[string, string](journals, func(x string, _ int) string { return getJournal(x) })
+	journalmap := make(map[string]string)
+	for i := 0; i < len(journals); i++ {
+		journalmap[journals[i]] = journal_titles[i]
+	}
+	response = lo.Map[Paper, Paper](response, func(x Paper, _ int) Paper {
+		x.Journal = journalmap[x.Journal]
+		return x
+	})
 	json.NewEncoder(w).Encode(response)
 
 }
-
-// var wg sync.WaitGroup
-// journalsChan := make(chan string, len(content.Authorships))
-// for i, author := range content.Authorships {
-// 	wg.Add(1)
-// 	i := i
-// 	go func(author AuthorShip) {
-// 		defer wg.Done()
-// 		journalsChan <- getJournal()
-// 	}(journal)
-// }
