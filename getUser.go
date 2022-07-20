@@ -7,11 +7,12 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
-func getJournal() {
-
+func getJournal(apistring string) string {
+	return "hello"
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
@@ -52,7 +53,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	var response []Paper
-	var journals map[string]string
+	journals := make(map[string]string)
 	for index, content := range mtmtResponse.Content {
 		journals[content.Journal.Link] = ""
 		var doi string
@@ -64,13 +65,19 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		// {
-
-		// 					index:      i,
-		// 					familyName: author.FamilyName,
-		// 					givenName:  author.GivenName,
-		// 					isUser:     string(author.Type.Mtid) == mtid,
-		// 				}
+		var authors []Author
+		mtid_asint, _ := strconv.Atoi(mtid)
+		for author_i, author := range content.Authorships {
+			fmt.Println(mtid_asint)
+			if author.Type.Mtid == 1 {
+				authors = append(authors, Author{
+					Index:      author_i,
+					FamilyName: author.FamilyName,
+					GivenName:  author.GivenName,
+					IsUser:     author.Author.Mtid == mtid_asint,
+				})
+			}
+		}
 		paper := Paper{
 			Index:               index,
 			Title:               content.Title,
@@ -78,6 +85,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			Citation:            content.Citation,
 			IndependentCitation: content.IndependentCitation,
 			Doi:                 doi,
+			Authors:             authors,
 		}
 		response = append(response, paper)
 	}

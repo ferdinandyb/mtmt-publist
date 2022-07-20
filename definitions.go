@@ -1,10 +1,10 @@
 package main
 
 type Author struct {
-	index      int
-	familyName string
-	givenName  string
-	isUser     bool
+	Index      int
+	FamilyName string
+	GivenName  string
+	IsUser     bool
 }
 
 type Paper struct {
@@ -18,10 +18,19 @@ type Paper struct {
 	Authors             []Author
 }
 
+type JournalResponse struct {
+	Content struct {
+		Title string `json:"title"`
+	} `json:"content"`
+}
+
 type AuthorShip struct {
 	FamilyName string `json:"familyName"`
 	GivenName  string `json:"givenName"`
-	Type       struct {
+	Author     struct {
+		Mtid int `json:"mtid"`
+	} `json:"author"`
+	Type struct {
 		Mtid int `json:"mtid"`
 	} `json:"type"`
 }
