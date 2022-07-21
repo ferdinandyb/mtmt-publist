@@ -7,7 +7,10 @@ import (
 	"os"
 )
 
+var CACHETIME int64
+
 func main() {
+	CACHETIME = 60 * 60 * 24
 	mux := http.NewServeMux()
 	mux.HandleFunc("/user", handleGetUser)
 	mux.HandleFunc("/institute", handleGetInstitute)

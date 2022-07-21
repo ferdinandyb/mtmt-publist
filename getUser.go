@@ -58,7 +58,7 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	filename := "user_" + mtid + ".json"
 	info, err := os.Stat(filename)
 	var jsonresp []byte
-	if err != nil || time.Now().Unix()-info.ModTime().Unix() > 30 {
+	if err != nil || time.Now().Unix()-info.ModTime().Unix() > CACHETIME {
 		response := getUser(mtid)
 		jsonresp, _ = json.Marshal(response)
 		_ = ioutil.WriteFile(filename, jsonresp, 0644)

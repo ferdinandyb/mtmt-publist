@@ -83,7 +83,7 @@ func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 	filename := "institutes_" + strings.Join(mtid, "_") + ".json"
 	info, err := os.Stat(filename)
 	var jsonresp []byte
-	if err != nil || time.Now().Unix()-info.ModTime().Unix() > 30 {
+	if err != nil || time.Now().Unix()-info.ModTime().Unix() > CACHETIME {
 		response := getInstitutes(mtid)
 		jsonresp, _ = json.Marshal(response)
 		_ = ioutil.WriteFile(filename, jsonresp, 0644)
