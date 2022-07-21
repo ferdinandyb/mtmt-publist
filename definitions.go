@@ -16,6 +16,7 @@ type Paper struct {
 	Citation            int
 	IndependentCitation int
 	Authors             []Author
+	Mtid                int
 }
 
 type PaperResponse struct {
@@ -42,6 +43,7 @@ type AuthorShip struct {
 
 type MtmtResponse struct {
 	Content []struct {
+		Mtid                int          `json:"mtid"`
 		Title               string       `json:"title"`
 		Year                int          `json:"publishedYear"`
 		Citation            int          `json:"citationCount"`

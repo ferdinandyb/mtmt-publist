@@ -8,20 +8,25 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
+	"strings"
 	"time"
+
+	"github.com/samber/lo"
 )
 
-func getUser(mtid string) PaperResponse {
+func getInsitutePapers(mtid string) []Paper {
+
 	base, err := url.Parse("https://m2.mtmt.hu/api/publication")
 	if err != nil {
-		return PaperResponse{}
+		return make([]Paper, 0)
 	}
 
 	// Query params
 	params := url.Values{}
+	params.Add("cond", "institutes;inia;"+mtid)
 	params.Add("cond", "published;eq;true")
 	params.Add("cond", "core;eq;true")
-	params.Add("cond", "authors.mtid;eq;"+mtid)
 	params.Add("cond", "category.mtid;eq;1")
 	params.Add("cond", "type.mtid;eq;24")
 	params.Add("cond", "languages.label;eq;Angol")
@@ -46,24 +51,45 @@ func getUser(mtid string) PaperResponse {
 	}
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
-	papers := getPapers(mtmtResponse, mtid)
+	papers := getPapers(mtmtResponse, "-1")
+	return papers
+}
+
+func getUnique(papers []Paper) []Paper {
+	idmap := make(map[int]Paper)
+	for _, paper := range papers {
+		idmap[paper.Mtid] = paper
+	}
+	return lo.Values[int, Paper](idmap)
+
+}
+
+func getInstitutes(mtids []string) PaperResponse {
+	var papers []Paper
+	for _, id := range mtids {
+		papers = append(papers, getInsitutePapers(id)...)
+	}
+	papers = getUnique(papers)
+
 	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
 	return retval
 
 }
 
-func handleGetUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("got /user request\n")
-	mtid := r.URL.Query().Get("mtid")
-	filename := "user_" + mtid + ".json"
+func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("got /insitute request\n")
+	mtid := r.URL.Query()["mtid"]
+	sort.Strings(mtid)
+	filename := "institutes_" + strings.Join(mtid, "_") + ".json"
 	info, err := os.Stat(filename)
 	var jsonresp []byte
 	if err != nil || time.Now().Unix()-info.ModTime().Unix() > 30 {
-		response := getUser(mtid)
+		response := getInstitutes(mtid)
 		jsonresp, _ = json.Marshal(response)
 		_ = ioutil.WriteFile(filename, jsonresp, 0644)
 	} else {
 		jsonresp, _ = ioutil.ReadFile(filename)
 	}
 	w.Write(jsonresp)
+
 }
