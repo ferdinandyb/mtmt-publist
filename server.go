@@ -9,7 +9,7 @@ import (
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/user", getUser)
+	mux.HandleFunc("/user", handleGetUser)
 
 	err := http.ListenAndServe(":3333", mux)
 	if errors.Is(err, http.ErrServerClosed) {

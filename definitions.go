@@ -18,6 +18,11 @@ type Paper struct {
 	Authors             []Author
 }
 
+type PaperResponse struct {
+	Papers []Paper
+	Time   int64
+}
+
 type JournalResponse struct {
 	Content struct {
 		Title string `json:"title"`
