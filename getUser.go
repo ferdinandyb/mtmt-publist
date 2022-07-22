@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"time"
 )
 
@@ -54,9 +55,13 @@ func getUser(mtid string) (PaperResponse, error) {
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	mtid := r.URL.Query().Get("mtid")
 	log.Printf("/user %s\n", mtid)
+	regres, _ := regexp.MatchString(`^\d+$`, mtid)
 	if mtid == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("400 - no MTID given"))
+	} else if !regres {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("400 - not an mtid"))
 	} else {
 		filename := "user_" + mtid + ".json"
 		info, fileerr := os.Stat(filename)

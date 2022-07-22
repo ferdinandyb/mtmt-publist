@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -80,9 +81,19 @@ func getInstitutes(mtids []string) (PaperResponse, error) {
 
 func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 	mtid := r.URL.Query()["mtid"]
+	isgoodparam := true
+	for _, id := range mtid {
+		regres, _ := regexp.MatchString(`^\d+$`, id)
+		if !regres {
+			isgoodparam = false
+		}
+	}
 	if len(mtid) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("400 - no MTID given"))
+	} else if !isgoodparam {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("400 - not an mtid"))
 	} else {
 		sort.Strings(mtid)
 		mtidstring := strings.Join(mtid, "_")
