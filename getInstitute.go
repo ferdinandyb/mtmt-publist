@@ -3,23 +3,21 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/samber/lo"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/samber/lo"
 )
 
-func getInsitutePapers(mtid string) []Paper {
+func getInstitutePapers(mtid string) ([]Paper, error) {
 
 	base, err := url.Parse("https://m2.mtmt.hu/api/publication")
 	if err != nil {
-		return make([]Paper, 0)
+		return make([]Paper, 0), err
 	}
 
 	// Query params
@@ -43,16 +41,16 @@ func getInsitutePapers(mtid string) []Paper {
 
 	resp, err := http.Get(base.String())
 	if err != nil {
-		log.Fatalln(err)
+		return make([]Paper, 0), err
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatalln(err)
+		return make([]Paper, 0), err
 	}
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	papers := getPapers(mtmtResponse, "-1")
-	return papers
+	return papers, nil
 }
 
 func getUnique(papers []Paper) []Paper {
@@ -64,15 +62,19 @@ func getUnique(papers []Paper) []Paper {
 
 }
 
-func getInstitutes(mtids []string) PaperResponse {
+func getInstitutes(mtids []string) (PaperResponse, error) {
 	var papers []Paper
 	for _, id := range mtids {
-		papers = append(papers, getInsitutePapers(id)...)
+		inst_papers, err := getInstitutePapers(id)
+		if err != nil {
+			return PaperResponse{}, err
+		}
+		papers = append(papers, inst_papers...)
 	}
 	papers = getUnique(papers)
 
 	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
-	return retval
+	return retval, nil
 
 }
 
@@ -81,15 +83,26 @@ func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 	mtid := r.URL.Query()["mtid"]
 	sort.Strings(mtid)
 	filename := "institutes_" + strings.Join(mtid, "_") + ".json"
-	info, err := os.Stat(filename)
+	info, fileerr := os.Stat(filename)
 	var jsonresp []byte
-	if err != nil || time.Now().Unix()-info.ModTime().Unix() > CACHETIME {
-		response := getInstitutes(mtid)
-		jsonresp, _ = json.Marshal(response)
-		_ = ioutil.WriteFile(filename, jsonresp, 0644)
+	if fileerr != nil || time.Now().Unix()-info.ModTime().Unix() >= CACHETIME {
+		response, err := getInstitutes(mtid)
+		if err != nil {
+			if fileerr == nil {
+				jsonresp, _ = ioutil.ReadFile(filename)
+				w.Write(jsonresp)
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("500 - Something bad happened!"))
+			}
+		} else {
+			jsonresp, _ = json.Marshal(response)
+			w.Write(jsonresp)
+			_ = ioutil.WriteFile(filename, jsonresp, 0644)
+		}
 	} else {
 		jsonresp, _ = ioutil.ReadFile(filename)
+		w.Write(jsonresp)
 	}
-	w.Write(jsonresp)
 
 }
