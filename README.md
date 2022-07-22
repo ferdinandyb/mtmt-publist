@@ -2,6 +2,8 @@
 
 A small server that fetches and compiles relevant information from the [MTMT](https://mtmt.hu) MYCITE2 API in an easy-to-display format.
 
+Previous queries are cached so a) MTMT is not bombarded for every page request and b) it has fallbacks for when MTMT is down.
+
 ## Usage without hosting
 
 Use the `etoservice-standalone.html` as an example to use the service which is hosted at `etoservice.elte.hu`.
