@@ -2,9 +2,9 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/samber/lo"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -79,30 +79,36 @@ func getInstitutes(mtids []string) (PaperResponse, error) {
 }
 
 func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("got /insitute request\n")
 	mtid := r.URL.Query()["mtid"]
-	sort.Strings(mtid)
-	filename := "institutes_" + strings.Join(mtid, "_") + ".json"
-	info, fileerr := os.Stat(filename)
-	var jsonresp []byte
-	if fileerr != nil || time.Now().Unix()-info.ModTime().Unix() >= CACHETIME {
-		response, err := getInstitutes(mtid)
-		if err != nil {
-			if fileerr == nil {
-				jsonresp, _ = ioutil.ReadFile(filename)
-				w.Write(jsonresp)
+	if len(mtid) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("400 - no MTID given"))
+	} else {
+		sort.Strings(mtid)
+		mtidstring := strings.Join(mtid, "_")
+		log.Printf("/insitute %s\n", mtidstring)
+		filename := "institutes_" + mtidstring + ".json"
+		info, fileerr := os.Stat(filename)
+		var jsonresp []byte
+		if fileerr != nil || time.Now().Unix()-info.ModTime().Unix() >= CACHETIME {
+			response, err := getInstitutes(mtid)
+			if err != nil {
+				if fileerr == nil {
+					jsonresp, _ = ioutil.ReadFile(filename)
+					w.Write(jsonresp)
+				} else {
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte("500 - MTMT is probably not available and no fallback exists"))
+				}
 			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500 - Something bad happened!"))
+				jsonresp, _ = json.Marshal(response)
+				w.Write(jsonresp)
+				_ = ioutil.WriteFile(filename, jsonresp, 0644)
 			}
 		} else {
-			jsonresp, _ = json.Marshal(response)
+			jsonresp, _ = ioutil.ReadFile(filename)
 			w.Write(jsonresp)
-			_ = ioutil.WriteFile(filename, jsonresp, 0644)
 		}
-	} else {
-		jsonresp, _ = ioutil.ReadFile(filename)
-		w.Write(jsonresp)
 	}
 
 }
