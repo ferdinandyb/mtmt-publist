@@ -1,0 +1,9 @@
+[Unit]
+Description=mtmt publist
+
+[Service]
+WorkingDirectory=/home/fbence
+ExecStart=/home/fbence/go/bin/mtmt-publist
+
+[Install]
+WantedBy=default.target
