@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/samber/lo"
 	lop "github.com/samber/lo/parallel"
 	"io/ioutil"
@@ -31,11 +32,29 @@ func getJournal(apistring string) string {
 	return strings.Title(strings.ToLower(journalResponse.Content.Title))
 }
 
+func getJournals(papers []Paper) []Paper {
+	var journals []string
+	for _, paper := range papers {
+		journals = append(journals, paper.Journal)
+	}
+	journals = lo.Uniq[string](journals)
+	fmt.Println("starting on journals")
+	journal_titles := lop.Map[string, string](journals, func(x string, _ int) string { return getJournal(x) })
+	journalmap := make(map[string]string)
+	for i := 0; i < len(journals); i++ {
+		journalmap[journals[i]] = journal_titles[i]
+	}
+	fmt.Println("got papers")
+	papers = lo.Map[Paper, Paper](papers, func(x Paper, _ int) Paper {
+		x.Journal = journalmap[x.Journal]
+		return x
+	})
+	return papers
+}
+
 func getPapers(mtmtResponse MtmtResponse, userMtid string) []Paper {
 	var papers []Paper
-	var journals []string
 	for index, content := range mtmtResponse.Content {
-		journals = append(journals, content.Journal.Link)
 		var doi string
 		for _, identifier := range content.Identifiers {
 			if identifier.Source.Label == "DOI" {
@@ -71,15 +90,5 @@ func getPapers(mtmtResponse MtmtResponse, userMtid string) []Paper {
 		papers = append(papers, paper)
 	}
 
-	journals = lo.Uniq[string](journals)
-	journal_titles := lop.Map[string, string](journals, func(x string, _ int) string { return getJournal(x) })
-	journalmap := make(map[string]string)
-	for i := 0; i < len(journals); i++ {
-		journalmap[journals[i]] = journal_titles[i]
-	}
-	papers = lo.Map[Paper, Paper](papers, func(x Paper, _ int) Paper {
-		x.Journal = journalmap[x.Journal]
-		return x
-	})
 	return papers
 }

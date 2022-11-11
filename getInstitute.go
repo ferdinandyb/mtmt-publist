@@ -11,14 +11,14 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
-func getInstitutePapers(mtid string) ([]Paper, error) {
-
+func getInstitutePapers(mtid string, paperchan chan []Paper) {
 	base, err := url.Parse("https://m2.mtmt.hu/api/publication")
 	if err != nil {
-		return make([]Paper, 0), err
+		return
 	}
 
 	// Query params
@@ -42,16 +42,17 @@ func getInstitutePapers(mtid string) ([]Paper, error) {
 
 	resp, err := http.Get(base.String())
 	if err != nil {
-		return make([]Paper, 0), err
+		return
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return make([]Paper, 0), err
+		return
 	}
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	papers := getPapers(mtmtResponse, "-1")
-	return papers, nil
+	paperchan <- papers
+	return
 }
 
 func getUnique(papers []Paper) []Paper {
@@ -65,17 +66,30 @@ func getUnique(papers []Paper) []Paper {
 
 func getInstitutes(mtids []string) (PaperResponse, error) {
 	var papers []Paper
+	var wg sync.WaitGroup
+	paperchan := make(chan []Paper)
+	responsechan := make(chan PaperResponse)
 	for _, id := range mtids {
-		inst_papers, err := getInstitutePapers(id)
-		if err != nil {
-			return PaperResponse{}, err
-		}
-		papers = append(papers, inst_papers...)
+		wg.Add(1)
+		go func(id string) {
+			defer wg.Done()
+			getInstitutePapers(id, paperchan)
+		}(id)
 	}
-	papers = getUnique(papers)
+	go func(responsechan chan PaperResponse) {
+		for inst_papers := range paperchan {
+			papers = append(papers, inst_papers...)
+		}
+		papers = getUnique(papers)
+		papers = getJournals(papers)
+		retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
+		responsechan <- retval
 
-	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
-	return retval, nil
+	}(responsechan)
+	wg.Wait()
+	close(paperchan)
+
+	return <-responsechan, nil
 
 }
 

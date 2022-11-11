@@ -47,6 +47,7 @@ func getUser(mtid string) (PaperResponse, error) {
 	mtmtResponse := MtmtResponse{}
 	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	papers := getPapers(mtmtResponse, mtid)
+	papers = getJournals(papers)
 	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
 	return retval, nil
 
