@@ -22,6 +22,11 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/user", handleGetUser)
 	mux.HandleFunc("/institute", handleGetInstitute)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("200 - alive"))
+	},
+	)
 	var port string
 	flag.StringVar(&port, "port", "3333", "specify port")
 	flag.Parse()
