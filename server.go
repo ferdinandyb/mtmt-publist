@@ -22,7 +22,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/user", handleGetUser)
 	mux.HandleFunc("/institute", handleGetInstitute)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/alive", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 - alive"))
 	},
