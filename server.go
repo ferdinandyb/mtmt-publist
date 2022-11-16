@@ -23,6 +23,7 @@ func main() {
 	mux.HandleFunc("/user", handleGetUser)
 	mux.HandleFunc("/institute", handleGetInstitute)
 	mux.HandleFunc("/alive", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("alive")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("200 - alive"))
 	},
