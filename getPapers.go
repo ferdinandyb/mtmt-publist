@@ -2,9 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"github.com/samber/lo"
-	lop "github.com/samber/lo/parallel"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,6 +13,7 @@ import (
 func getJournal(apistring string) string {
 	req, err := url.Parse("https://m2.mtmt.hu/" + apistring)
 	if err != nil {
+		log.Fatalln(err)
 		return ""
 	}
 
@@ -29,26 +27,27 @@ func getJournal(apistring string) string {
 	}
 	journalResponse := JournalResponse{}
 	err = json.Unmarshal([]byte(body), &journalResponse)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	return strings.Title(strings.ToLower(journalResponse.Content.Title))
 }
 
 func getJournals(papers []Paper) []Paper {
-	var journals []string
-	for _, paper := range papers {
-		journals = append(journals, paper.Journal)
-	}
-	journals = lo.Uniq[string](journals)
-	fmt.Println("starting on journals")
-	journal_titles := lop.Map[string, string](journals, func(x string, _ int) string { return getJournal(x) })
+	marshalledjson, _ := ioutil.ReadFile("journalmap.json")
 	journalmap := make(map[string]string)
-	for i := 0; i < len(journals); i++ {
-		journalmap[journals[i]] = journal_titles[i]
+	json.Unmarshal(marshalledjson, &journalmap)
+	for i, paper := range papers {
+		if title, ok := journalmap[paper.Journal]; ok {
+			papers[i].Journal = title
+		} else {
+			title := getJournal(paper.Journal)
+			journalmap[paper.Journal] = title
+			papers[i].Journal = title
+		}
 	}
-	fmt.Println("got papers")
-	papers = lo.Map[Paper, Paper](papers, func(x Paper, _ int) Paper {
-		x.Journal = journalmap[x.Journal]
-		return x
-	})
+	marshalledjson, _ = json.Marshal(journalmap)
+	_ = ioutil.WriteFile("journalmap.json", marshalledjson, 0644)
 	return papers
 }
 

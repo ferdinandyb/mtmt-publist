@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/samber/lo"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 func getInstitutePapers(mtid string, paperchan chan []Paper) {
@@ -61,7 +62,6 @@ func getUnique(papers []Paper) []Paper {
 		idmap[paper.Mtid] = paper
 	}
 	return lo.Values[int, Paper](idmap)
-
 }
 
 func getInstitutes(mtids []string) (PaperResponse, error) {
@@ -84,13 +84,11 @@ func getInstitutes(mtids []string) (PaperResponse, error) {
 		papers = getJournals(papers)
 		retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
 		responsechan <- retval
-
 	}(responsechan)
 	wg.Wait()
 	close(paperchan)
 
 	return <-responsechan, nil
-
 }
 
 func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
@@ -135,5 +133,4 @@ func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 			w.Write(jsonresp)
 		}
 	}
-
 }

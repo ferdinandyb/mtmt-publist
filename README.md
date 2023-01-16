@@ -2,7 +2,7 @@
 
 A small server that fetches and compiles relevant information from the [MTMT](https://mtmt.hu) MYCITE2 API in an easy-to-display format.
 
-Previous queries are cached so a) MTMT is not bombarded for every page request and b) it has fallbacks for when MTMT is down.
+Previous queries are cached so a) MTMT is not bombarded for every page request and b) it has fallbacks for when MTMT is down. Journal titles are also cached globally (those should not really change, but querying the API for each of them takes a long time).
 
 ## Usage without hosting
 
