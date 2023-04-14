@@ -6,9 +6,11 @@ Previous queries are cached so a) MTMT is not bombarded for every page request a
 
 ## Usage without hosting
 
-Use the `etoservice-standalone.html` as an example to use the service which is hosted at `etoservice.elte.hu`.
+Use the `etoservice-standalone.html` (if viewing on github, you can find it above in the file list view) as an example to use the service which is hosted at `etoservice.elte.hu`. Just copy the contents into page on your website.
 
-An example how this would look is [here](https://bence.ferdinandy.com/publications/), bar styling like fonts of course.
+An example how this would look is [here](https://bence.ferdinandy.com/publications/), bar styling (e.g. fonts) of course.
+
+Depending on whether you want to generate a list for yourself (single author) or an institution, you'd need to make the below modifications to the file:
 
 ### Single author
 
