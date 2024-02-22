@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -45,7 +45,7 @@ func getInstitutePapers(mtid string, paperchan chan []Paper) {
 	if err != nil {
 		return
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
@@ -117,7 +117,7 @@ func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 			response, err := getInstitutes(mtid)
 			if err != nil {
 				if fileerr == nil {
-					jsonresp, _ = ioutil.ReadFile(filename)
+					jsonresp, _ = os.ReadFile(filename)
 					w.Write(jsonresp)
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
@@ -126,10 +126,10 @@ func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 			} else {
 				jsonresp, _ = json.Marshal(response)
 				w.Write(jsonresp)
-				_ = ioutil.WriteFile(filename, jsonresp, 0644)
+				_ = os.WriteFile(filename, jsonresp, 0644)
 			}
 		} else {
-			jsonresp, _ = ioutil.ReadFile(filename)
+			jsonresp, _ = os.ReadFile(filename)
 			w.Write(jsonresp)
 		}
 	}

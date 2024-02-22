@@ -2,10 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -21,7 +22,7 @@ func getJournal(apistring string) string {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -34,7 +35,7 @@ func getJournal(apistring string) string {
 }
 
 func getJournals(papers []Paper) []Paper {
-	marshalledjson, _ := ioutil.ReadFile("journalmap.json")
+	marshalledjson, _ := os.ReadFile("journalmap.json")
 	journalmap := make(map[string]string)
 	json.Unmarshal(marshalledjson, &journalmap)
 	for i, paper := range papers {
@@ -47,7 +48,7 @@ func getJournals(papers []Paper) []Paper {
 		}
 	}
 	marshalledjson, _ = json.Marshal(journalmap)
-	_ = ioutil.WriteFile("journalmap.json", marshalledjson, 0644)
+	_ = os.WriteFile("journalmap.json", marshalledjson, 0644)
 	return papers
 }
 

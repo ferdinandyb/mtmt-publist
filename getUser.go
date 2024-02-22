@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -40,7 +40,7 @@ func getUser(mtid string) (PaperResponse, error) {
 	if err != nil {
 		return PaperResponse{}, err
 	}
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return PaperResponse{}, err
 	}
@@ -50,7 +50,6 @@ func getUser(mtid string) (PaperResponse, error) {
 	papers = getJournals(papers)
 	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
 	return retval, nil
-
 }
 
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +70,7 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 			response, err := getUser(mtid)
 			if err != nil {
 				if fileerr == nil {
-					jsonresp, _ = ioutil.ReadFile(filename)
+					jsonresp, _ = os.ReadFile(filename)
 					w.Write(jsonresp)
 				} else {
 					w.WriteHeader(http.StatusInternalServerError)
@@ -80,10 +79,10 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 			} else {
 				jsonresp, _ = json.Marshal(response)
 				w.Write(jsonresp)
-				_ = ioutil.WriteFile(filename, jsonresp, 0644)
+				_ = os.WriteFile(filename, jsonresp, 0644)
 			}
 		} else {
-			jsonresp, _ = ioutil.ReadFile(filename)
+			jsonresp, _ = os.ReadFile(filename)
 			w.Write(jsonresp)
 		}
 	}
