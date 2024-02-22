@@ -16,7 +16,7 @@
             </span>
             <i><a v-bind:href="a.Doi">{{a.Title}}</a>, </i>
             {{a.Journal}}
-            ({{a.Year}})
+            ({{a.Year}}) <span v-if="a.Sjr">- SJR {{a.Sjr}}</span>
         </li>
     </ol>
     </div>
