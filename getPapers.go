@@ -85,6 +85,7 @@ func getPapers(mtmtResponse MtmtResponse, userMtid string) []Paper {
 			Doi:                 doi,
 			Authors:             authors,
 			Journal:             content.Journal.Link,
+			Sjr:                 content.Sjr,
 		}
 		papers = append(papers, paper)
 	}

@@ -17,6 +17,7 @@ type Paper struct {
 	IndependentCitation int
 	Authors             []Author
 	Mtid                int
+	Sjr                 string
 }
 
 type PaperResponse struct {
@@ -49,6 +50,7 @@ type MtmtResponse struct {
 		Citation            int          `json:"citationCount"`
 		IndependentCitation int          `json:"independentCitationCount"`
 		Authorships         []AuthorShip `json:"authorships"`
+		Sjr                 string       `json:"ratingsForSort"`
 		Identifiers         []struct {
 			RealUrl string `json:"realUrl"`
 			Label   string `json:"label"`
