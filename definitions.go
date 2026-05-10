@@ -43,6 +43,9 @@ type AuthorShip struct {
 }
 
 type MtmtResponse struct {
+	Paging struct {
+		Last bool `json:"last"`
+	} `json:"paging"`
 	Content []struct {
 		Mtid                int          `json:"mtid"`
 		Title               string       `json:"title"`
