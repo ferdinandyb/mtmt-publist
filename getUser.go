@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -12,12 +11,6 @@ import (
 )
 
 func getUser(mtid string) (PaperResponse, error) {
-	base, err := url.Parse("https://m2.mtmt.hu/api/publication")
-	if err != nil {
-		return PaperResponse{}, err
-	}
-
-	// Query params
 	params := url.Values{}
 	params.Add("cond", "published;eq;true")
 	params.Add("cond", "core;eq;true")
@@ -27,25 +20,15 @@ func getUser(mtid string) (PaperResponse, error) {
 	params.Add("cond", "languages.label;eq;Angol")
 	params.Add("sort", "publishedYear,desc")
 	params.Add("sort", "firstAuthor,asc")
-	params.Add("size", "10000")
-	params.Add("size", "10000")
 	params.Add("fields", "template")
 	params.Add("labelLang", "hun")
 	params.Add("cite_type", "2")
-	params.Add("page", "1")
 	params.Add("format", "json")
-	base.RawQuery = params.Encode()
 
-	resp, err := http.Get(base.String())
+	mtmtResponse, err := fetchAllPages(params)
 	if err != nil {
 		return PaperResponse{}, err
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return PaperResponse{}, err
-	}
-	mtmtResponse := MtmtResponse{}
-	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	papers := getPapers(mtmtResponse, mtid)
 	papers = getJournals(papers)
 	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
