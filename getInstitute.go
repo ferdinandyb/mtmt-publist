@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -17,12 +16,6 @@ import (
 )
 
 func getInstitutePapers(mtid string, paperchan chan []Paper) {
-	base, err := url.Parse("https://m2.mtmt.hu/api/publication")
-	if err != nil {
-		return
-	}
-
-	// Query params
 	params := url.Values{}
 	params.Add("cond", "institutes;inia;"+mtid)
 	params.Add("cond", "published;eq;true")
@@ -32,28 +25,19 @@ func getInstitutePapers(mtid string, paperchan chan []Paper) {
 	params.Add("cond", "languages.label;eq;Angol")
 	params.Add("sort", "publishedYear,desc")
 	params.Add("sort", "firstAuthor,asc")
-	params.Add("size", "10000")
-	params.Add("size", "10000")
 	params.Add("fields", "template")
 	params.Add("labelLang", "hun")
 	params.Add("cite_type", "2")
-	params.Add("page", "1")
 	params.Add("format", "json")
-	base.RawQuery = params.Encode()
 
-	resp, err := http.Get(base.String())
+	mtmtResponse, err := fetchAllPages(params)
 	if err != nil {
+		log.Printf("getInstitutePapers: fetchAllPages error for mtid %s: %v", mtid, err)
+		paperchan <- nil
 		return
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-	mtmtResponse := MtmtResponse{}
-	err = json.Unmarshal([]byte(body), &mtmtResponse)
 	papers := getPapers(mtmtResponse, "-1")
 	paperchan <- papers
-	return
 }
 
 func getUnique(papers []Paper) []Paper {
