@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -10,6 +11,65 @@ import (
 	"strconv"
 	"strings"
 )
+
+// fetchAllPages fetches all pages from the MTMT API for the given base params
+// and returns a single MtmtResponse with all content entries merged.
+// The caller should set all cond/sort/fields params; size and page are managed here.
+func fetchAllPages(params url.Values) (MtmtResponse, error) {
+	params.Set("size", "5000")
+	var allContent []struct {
+		Mtid                int          `json:"mtid"`
+		Title               string       `json:"title"`
+		Year                int          `json:"publishedYear"`
+		Citation            int          `json:"citationCount"`
+		IndependentCitation int          `json:"independentCitationCount"`
+		Authorships         []AuthorShip `json:"authorships"`
+		Sjr                 string       `json:"ratingsForSort"`
+		Identifiers         []struct {
+			RealUrl string `json:"realUrl"`
+			Label   string `json:"label"`
+			Source  struct {
+				Label string `json:"label"`
+			} `json:"source"`
+		} `json:"identifiers"`
+		Journal struct {
+			Link string `json:"link"`
+		} `json:"journal"`
+	}
+
+	for page := 1; ; page++ {
+		params.Set("page", strconv.Itoa(page))
+		base, err := url.Parse("https://m2.mtmt.hu/api/publication")
+		if err != nil {
+			return MtmtResponse{}, err
+		}
+		base.RawQuery = params.Encode()
+
+		resp, err := http.Get(base.String())
+		if err != nil {
+			return MtmtResponse{}, err
+		}
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return MtmtResponse{}, err
+		}
+
+		var pageResp MtmtResponse
+		if err := json.Unmarshal(body, &pageResp); err != nil {
+			log.Printf("fetchAllPages: failed to unmarshal page %d: %v\nbody: %.200s", page, err, body)
+			return MtmtResponse{}, fmt.Errorf("unmarshal page %d: %w", page, err)
+		}
+
+		allContent = append(allContent, pageResp.Content...)
+
+		if pageResp.Paging.Last {
+			break
+		}
+	}
+
+	return MtmtResponse{Content: allContent}, nil
+}
 
 func getJournal(apistring string) string {
 	req, err := url.Parse("https://m2.mtmt.hu/" + apistring)
