@@ -30,7 +30,6 @@ func getUser(mtid string) (PaperResponse, error) {
 		return PaperResponse{}, err
 	}
 	papers := getPapers(mtmtResponse, mtid)
-	papers = getJournals(papers)
 	retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
 	return retval, nil
 }

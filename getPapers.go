@@ -7,10 +7,20 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+// issnSuffix matches the ISSN(s) MTMT appends to journal.label, e.g.
+// "JOURNAL OF EXPERIMENTAL BIOLOGY 0022-0949 1477-9145".
+var issnSuffix = regexp.MustCompile(`(\s+\d{4}-\d{3}[\dXx])+\s*$`)
+
+// journalTitle derives a clean journal name from journal.label, avoiding an
+// extra /api/journal request per publication.
+func journalTitle(label string) string {
+	return strings.Title(strings.ToLower(issnSuffix.ReplaceAllString(label, "")))
+}
 
 // fetchAllPages fetches all pages from the MTMT API for the given base params
 // and returns a single MtmtResponse with all content entries merged.
@@ -33,7 +43,7 @@ func fetchAllPages(params url.Values) (MtmtResponse, error) {
 			} `json:"source"`
 		} `json:"identifiers"`
 		Journal struct {
-			Link string `json:"link"`
+			Label string `json:"label"`
 		} `json:"journal"`
 	}
 
@@ -71,47 +81,6 @@ func fetchAllPages(params url.Values) (MtmtResponse, error) {
 	return MtmtResponse{Content: allContent}, nil
 }
 
-func getJournal(apistring string) string {
-	req, err := url.Parse("https://m2.mtmt.hu/" + apistring)
-	if err != nil {
-		log.Fatalln(err)
-		return ""
-	}
-
-	resp, err := http.Get(req.String())
-	if err != nil {
-		log.Fatalln(err)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	journalResponse := JournalResponse{}
-	err = json.Unmarshal([]byte(body), &journalResponse)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	return strings.Title(strings.ToLower(journalResponse.Content.Title))
-}
-
-func getJournals(papers []Paper) []Paper {
-	marshalledjson, _ := os.ReadFile("journalmap.json")
-	journalmap := make(map[string]string)
-	json.Unmarshal(marshalledjson, &journalmap)
-	for i, paper := range papers {
-		if title, ok := journalmap[paper.Journal]; ok {
-			papers[i].Journal = title
-		} else {
-			title := getJournal(paper.Journal)
-			journalmap[paper.Journal] = title
-			papers[i].Journal = title
-		}
-	}
-	marshalledjson, _ = json.Marshal(journalmap)
-	_ = os.WriteFile("journalmap.json", marshalledjson, 0644)
-	return papers
-}
-
 func getPapers(mtmtResponse MtmtResponse, userMtid string) []Paper {
 	var papers []Paper
 	for index, content := range mtmtResponse.Content {
@@ -145,7 +114,7 @@ func getPapers(mtmtResponse MtmtResponse, userMtid string) []Paper {
 			IndependentCitation: content.IndependentCitation,
 			Doi:                 doi,
 			Authors:             authors,
-			Journal:             content.Journal.Link,
+			Journal:             journalTitle(content.Journal.Label),
 			Sjr:                 content.Sjr,
 		}
 		papers = append(papers, paper)

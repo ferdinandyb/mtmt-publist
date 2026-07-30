@@ -65,7 +65,6 @@ func getInstitutes(mtids []string) (PaperResponse, error) {
 			papers = append(papers, inst_papers...)
 		}
 		papers = getUnique(papers)
-		papers = getJournals(papers)
 		retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
 		responsechan <- retval
 	}(responsechan)

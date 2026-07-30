@@ -25,12 +25,6 @@ type PaperResponse struct {
 	Time   int64
 }
 
-type JournalResponse struct {
-	Content struct {
-		Title string `json:"title"`
-	} `json:"content"`
-}
-
 type AuthorShip struct {
 	FamilyName string `json:"familyName"`
 	GivenName  string `json:"givenName"`
@@ -62,7 +56,7 @@ type MtmtResponse struct {
 			} `json:"source"`
 		} `json:"identifiers"`
 		Journal struct {
-			Link string `json:"link"`
+			Label string `json:"label"`
 		} `json:"journal"`
 	} `json:"content"`
 }
