@@ -36,27 +36,29 @@ type AuthorShip struct {
 	} `json:"type"`
 }
 
+type Publication struct {
+	Mtid                int          `json:"mtid"`
+	Title               string       `json:"title"`
+	Year                int          `json:"publishedYear"`
+	Citation            int          `json:"citationCount"`
+	IndependentCitation int          `json:"independentCitationCount"`
+	Authorships         []AuthorShip `json:"authorships"`
+	Sjr                 string       `json:"ratingsForSort"`
+	Identifiers         []struct {
+		RealUrl string `json:"realUrl"`
+		Label   string `json:"label"`
+		Source  struct {
+			Label string `json:"label"`
+		} `json:"source"`
+	} `json:"identifiers"`
+	Journal struct {
+		Label string `json:"label"`
+	} `json:"journal"`
+}
+
 type MtmtResponse struct {
 	Paging struct {
 		Last bool `json:"last"`
 	} `json:"paging"`
-	Content []struct {
-		Mtid                int          `json:"mtid"`
-		Title               string       `json:"title"`
-		Year                int          `json:"publishedYear"`
-		Citation            int          `json:"citationCount"`
-		IndependentCitation int          `json:"independentCitationCount"`
-		Authorships         []AuthorShip `json:"authorships"`
-		Sjr                 string       `json:"ratingsForSort"`
-		Identifiers         []struct {
-			RealUrl string `json:"realUrl"`
-			Label   string `json:"label"`
-			Source  struct {
-				Label string `json:"label"`
-			} `json:"source"`
-		} `json:"identifiers"`
-		Journal struct {
-			Label string `json:"label"`
-		} `json:"journal"`
-	} `json:"content"`
+	Content []Publication `json:"content"`
 }

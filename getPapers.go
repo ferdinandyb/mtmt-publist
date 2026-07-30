@@ -27,25 +27,7 @@ func journalTitle(label string) string {
 // The caller should set all cond/sort/fields params; size and page are managed here.
 func fetchAllPages(params url.Values) (MtmtResponse, error) {
 	params.Set("size", "5000")
-	var allContent []struct {
-		Mtid                int          `json:"mtid"`
-		Title               string       `json:"title"`
-		Year                int          `json:"publishedYear"`
-		Citation            int          `json:"citationCount"`
-		IndependentCitation int          `json:"independentCitationCount"`
-		Authorships         []AuthorShip `json:"authorships"`
-		Sjr                 string       `json:"ratingsForSort"`
-		Identifiers         []struct {
-			RealUrl string `json:"realUrl"`
-			Label   string `json:"label"`
-			Source  struct {
-				Label string `json:"label"`
-			} `json:"source"`
-		} `json:"identifiers"`
-		Journal struct {
-			Label string `json:"label"`
-		} `json:"journal"`
-	}
+	var allContent []Publication
 
 	for page := 1; ; page++ {
 		params.Set("page", strconv.Itoa(page))

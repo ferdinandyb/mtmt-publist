@@ -1,11 +1,10 @@
 package main
 
 import (
-	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
@@ -15,7 +14,7 @@ import (
 	"github.com/samber/lo"
 )
 
-func getInstitutePapers(mtid string, paperchan chan []Paper) {
+func getInstitutePapers(mtid string) ([]Paper, error) {
 	params := url.Values{}
 	params.Add("cond", "institutes;inia;"+mtid)
 	params.Add("cond", "published;eq;true")
@@ -32,12 +31,9 @@ func getInstitutePapers(mtid string, paperchan chan []Paper) {
 
 	mtmtResponse, err := fetchAllPages(params)
 	if err != nil {
-		log.Printf("getInstitutePapers: fetchAllPages error for mtid %s: %v", mtid, err)
-		paperchan <- nil
-		return
+		return nil, fmt.Errorf("institute %s: %w", mtid, err)
 	}
-	papers := getPapers(mtmtResponse, "-1")
-	paperchan <- papers
+	return getPapers(mtmtResponse, "-1"), nil
 }
 
 func getUnique(papers []Paper) []Paper {
@@ -49,29 +45,34 @@ func getUnique(papers []Paper) []Paper {
 }
 
 func getInstitutes(mtids []string) (PaperResponse, error) {
-	var papers []Paper
+	type result struct {
+		papers []Paper
+		err    error
+	}
+	results := make(chan result, len(mtids))
 	var wg sync.WaitGroup
-	paperchan := make(chan []Paper)
-	responsechan := make(chan PaperResponse)
 	for _, id := range mtids {
 		wg.Add(1)
 		go func(id string) {
 			defer wg.Done()
-			getInstitutePapers(id, paperchan)
+			papers, err := getInstitutePapers(id)
+			results <- result{papers, err}
 		}(id)
 	}
-	go func(responsechan chan PaperResponse) {
-		for inst_papers := range paperchan {
-			papers = append(papers, inst_papers...)
-		}
-		papers = getUnique(papers)
-		retval := PaperResponse{Papers: papers, Time: time.Now().Unix()}
-		responsechan <- retval
-	}(responsechan)
 	wg.Wait()
-	close(paperchan)
+	close(results)
 
-	return <-responsechan, nil
+	var papers []Paper
+	for r := range results {
+		if r.err != nil {
+			// One institute failing must not overwrite a good cache with a
+			// partial list; the caller falls back to the existing cache.
+			return PaperResponse{}, r.err
+		}
+		papers = append(papers, r.papers...)
+	}
+	papers = getUnique(papers)
+	return PaperResponse{Papers: papers, Time: time.Now().Unix()}, nil
 }
 
 func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
@@ -86,34 +87,16 @@ func handleGetInstitute(w http.ResponseWriter, r *http.Request) {
 	if len(mtid) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("400 - no MTID given"))
-	} else if !isgoodparam {
+		return
+	}
+	if !isgoodparam {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("400 - not an mtid"))
-	} else {
-		sort.Strings(mtid)
-		mtidstring := strings.Join(mtid, "_")
-		log.Printf("/insitute %s\n", mtidstring)
-		filename := "institutes_" + mtidstring + ".json"
-		info, fileerr := os.Stat(filename)
-		var jsonresp []byte
-		if fileerr != nil || time.Now().Unix()-info.ModTime().Unix() >= CACHETIME {
-			response, err := getInstitutes(mtid)
-			if err != nil {
-				if fileerr == nil {
-					jsonresp, _ = os.ReadFile(filename)
-					w.Write(jsonresp)
-				} else {
-					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte("500 - MTMT is probably not available and no fallback exists"))
-				}
-			} else {
-				jsonresp, _ = json.Marshal(response)
-				w.Write(jsonresp)
-				_ = os.WriteFile(filename, jsonresp, 0644)
-			}
-		} else {
-			jsonresp, _ = os.ReadFile(filename)
-			w.Write(jsonresp)
-		}
+		return
 	}
+	sort.Strings(mtid)
+	mtidstring := strings.Join(mtid, "_")
+	log.Printf("/insitute %s\n", mtidstring)
+	filename := "institutes_" + mtidstring + ".json"
+	serveCached(w, filename, func() (PaperResponse, error) { return getInstitutes(mtid) })
 }
