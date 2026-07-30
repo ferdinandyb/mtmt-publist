@@ -35,14 +35,14 @@
 </div>
 
 <script>
-// To get the publications of one person, put their mtid in the URL below.
-// For institutions, change "user" to "institute" and repeat &mtid=... for
-// each institute id.
-const SERVER_URL = "https://etoservice.elte.hu/mtmt-publist/user?mtid=10028021";
+// Set MODE to "user" for a single author, or "institute" for one or more
+// institutes. MTIDS holds one id for "user" mode, or one-or-more for
+// "institute" mode.
+const MODE = "user";
+const MTIDS = ["10028021"];
 
-const serverUrl = new URL(SERVER_URL);
-const MODE = serverUrl.pathname.split("/").pop();
-const MTIDS = serverUrl.searchParams.getAll("mtid");
+const SERVER_URL = "https://etoservice.elte.hu/mtmt-publist/" + MODE + "?" +
+    MTIDS.map(id => "mtid=" + id).join("&");
 
 const MTMT_API = "https://m2.mtmt.hu/api/publication";
 const MTMT_BASE_CONDS = [

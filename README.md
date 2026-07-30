@@ -12,22 +12,22 @@ An example how this would look is [here](https://bence.ferdinandy.com/publicatio
 
 If `etoservice.elte.hu` is unreachable, the page falls back to querying the MTMT API directly in the browser. This works for any list, but for institutions with many publications it can take up to a minute and download several megabytes, since MTMT does not offer a lighter response format — the hosted service exists precisely to avoid that cost on every page view.
 
-Depending on whether you want to generate a list for yourself (single author) or an institution, you'd need to make the below modifications to the file:
+Depending on whether you want to generate a list for yourself (single author) or an institution, you'd need to make the below modifications to the file, at the top of the `<script>` block:
 
 ### Single author
 
-To get the publications of one person change the `SERVER_URL` near the top of the `<script>` block
-
 ```
-const SERVER_URL = "https://etoservice.elte.hu/mtmt-publist/user?mtid=10028021";
+const MODE = "user";
+const MTIDS = ["10028021"];
 ```
 
-so that the `mtid=XXXXXXX` has the specific author's mtid. I usually get this from the URL of the author's page, e.g. if I search for myself I land on this URL: https://m2.mtmt.hu/gui2/?type=authors&mode=browse&sel=10028021, which has my mtmt id at the end.
+`MTIDS` should hold the specific author's mtid. I usually get this from the URL of the author's page, e.g. if I search for myself I land on this URL: https://m2.mtmt.hu/gui2/?type=authors&mode=browse&sel=10028021, which has my mtmt id at the end.
 
 ### Institutions
 
-Rather similar, but you need to change `user` to `institute` in the url and here you can specify several ID-s, e.g. if your department also hosts some research groups which you want to handle together.
+Rather similar, but set `MODE` to `"institute"` and list one or more IDs, e.g. if your department also hosts some research groups which you want to handle together.
 
 ```
-const SERVER_URL = "https://etoservice.elte.hu/mtmt-publist/institute?mtid=338&mtid=12724&mtid=11351&mtid=20298";
+const MODE = "institute";
+const MTIDS = ["338", "12724", "11351", "20298"];
 ```
