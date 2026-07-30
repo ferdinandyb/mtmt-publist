@@ -31,3 +31,17 @@ Rather similar, but set `MODE` to `"institute"` and list one or more IDs, e.g. i
 const MODE = "institute";
 const MTIDS = ["338", "12724", "11351", "20298"];
 ```
+
+### Grouping by year
+
+Set `GROUP_BY_YEAR` to `true` to show a heading for each year instead of one flat list.
+
+### Running your own copy
+
+If you host the service yourself instead of using `etoservice.elte.hu`, point `SERVER_BASE` at your deployment:
+
+```
+const SERVER_BASE = "/mtmt-publist";
+```
+
+A relative path like this works when the service is proxied on the same site as the page.
