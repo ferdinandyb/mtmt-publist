@@ -23,19 +23,125 @@
         </div>
     </ol>
     </div>
+    <div v-else-if="failed">
+    Could not load the publication list. Both etoservice and MTMT appear to be unavailable.
+    </div>
     <div v-else>
-    Generating up-to-date paperlist from MTMT, please wait.
+    <span v-if="direct">etoservice is unavailable, fetching directly from MTMT (this can take a while for long lists), please wait.</span>
+    <span v-else>Generating up-to-date paperlist from MTMT, please wait.</span>
     <div class="spinner"></div>
     </div>
 </div>
 
 <script>
+// To get the publications of one person, put their mtid in the URL below.
+// For institutions, change "user" to "institute" and repeat &mtid=... for
+// each institute id.
+const SERVER_URL = "https://etoservice.elte.hu/mtmt-publist/user?mtid=10028021";
+
+const serverUrl = new URL(SERVER_URL);
+const MODE = serverUrl.pathname.split("/").pop();
+const MTIDS = serverUrl.searchParams.getAll("mtid");
+
+const MTMT_API = "https://m2.mtmt.hu/api/publication";
+const MTMT_BASE_CONDS = [
+    "published;eq;true",
+    "core;eq;true",
+    "category.mtid;eq;1",
+    "type.mtid;eq;24",
+    "languages.label;eq;Angol",
+];
+
+function journalTitle(label) {
+    // journal.label is "TITLE ISSN [ISSN]", e.g.
+    // "JOURNAL OF EXPERIMENTAL BIOLOGY 0022-0949 1477-9145"
+    const stripped = label.replace(/(\s+\d{4}-\d{3}[\dXx])+\s*$/, "");
+    // Title-case matching Go's strings.Title(strings.ToLower(...)): a letter
+    // is capitalized when it starts the string or follows a character that
+    // is not a Unicode letter/digit/underscore (accented letters count as
+    // letters, so e.g. "wrocławiu" stays one word, not "wrocłAwiu").
+    return stripped.toLowerCase().replace(/(^|[^\p{L}\p{N}_])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase());
+}
+
+function paperFromContent(content, userMtid) {
+    const identifiers = content.identifiers || [];
+    // mirrors the Go loop: does not break on first match, so a later DOI
+    // identifier in the list wins if there is more than one
+    const doiIds = identifiers.filter(i => i.source.label === "DOI");
+    const doiId = doiIds[doiIds.length - 1];
+    let doi = "";
+    if (doiId) {
+        doi = doiId.realUrl || ("https://doi.org/" + doiId.label.split(" ")[0]);
+    }
+    const authors = (content.authorships || [])
+        .filter(a => a.type.mtid === 1)
+        .map((a, i) => ({
+            Index: i,
+            FamilyName: a.familyName,
+            GivenName: a.givenName,
+            IsUser: userMtid != null && a.author?.mtid === userMtid,
+        }));
+    return {
+        Mtid: content.mtid,
+        Title: content.title,
+        Year: content.publishedYear,
+        Sjr: content.ratingsForSort || "",
+        Doi: doi,
+        Authors: authors,
+        Journal: journalTitle(content.journal.label),
+    };
+}
+
+async function fetchAllPages(extraCond) {
+    const params = new URLSearchParams();
+    for (const cond of MTMT_BASE_CONDS) params.append("cond", cond);
+    params.append("cond", extraCond);
+    params.set("fields", "template");
+    params.set("format", "json");
+    params.set("size", "5000");
+
+    let content = [];
+    for (let page = 1; ; page++) {
+        params.set("page", page);
+        const res = await fetch(MTMT_API + "?" + params.toString());
+        const json = await res.json();
+        content = content.concat(json.content);
+        if (json.paging.last) break;
+    }
+    return content;
+}
+
+async function fetchMtmt() {
+    if (MODE === "user") {
+        const mtid = parseInt(MTIDS[0], 10);
+        const content = await fetchAllPages("authors.mtid;eq;" + mtid);
+        return { Papers: content.map(c => paperFromContent(c, mtid)), Time: Date.now() / 1000 };
+    }
+    const perInstitute = await Promise.all(
+        MTIDS.map(id => fetchAllPages("institutes;inia;" + id))
+    );
+    const byMtid = new Map();
+    for (const content of perInstitute) {
+        for (const c of content) byMtid.set(c.mtid, c);
+    }
+    const papers = Array.from(byMtid.values()).map(c => paperFromContent(c, null));
+    return { Papers: papers, Time: Date.now() / 1000 };
+}
+
+async function fetchServer() {
+    const res = await fetch(SERVER_URL);
+    if (!res.ok) throw new Error("server responded " + res.status);
+    return res.json();
+}
+
 var app = new Vue({
 	el: '#app',
     data: {
     	articles : [],
         date: "",
-        loaded: false
+        loaded: false,
+        direct: false,
+        failed: false
     },
     methods: {
 
@@ -56,14 +162,15 @@ var app = new Vue({
                 }
 	},
     mounted(){
-    fetch ("https://etoservice.elte.hu/mtmt-publist/user?mtid=10028021").then(res => res.json()).then(
-    json => {
-        this.articles = json.Papers
-        var date = new Date(json.Time * 1000);
-        this.date = date.toLocaleString();
-        this.loaded = true
-    }
-    )
+    fetchServer()
+        .catch(() => { this.direct = true; return fetchMtmt(); })
+        .then(json => {
+            this.articles = json.Papers
+            var date = new Date(json.Time * 1000);
+            this.date = date.toLocaleString();
+            this.loaded = true
+        })
+        .catch(() => { this.failed = true })
     }
 })
 </script>
